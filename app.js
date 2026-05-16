@@ -49,38 +49,66 @@ function scheduleSave(fn) {
 
 // ─── DB helpers ───────────────────────────────────────────────────────────────
 async function loadLists() {
-  console.log('loadLists: uid =', currentUser?.id);
-  const { data: memberships, error: memErr } = await sb.from('list_members').select('list_id, role');
-  console.log('memberships:', memberships, 'err:', memErr);
-  if (!memberships?.length) { console.warn('No memberships'); return []; }
-
+  // Single membership query to get list IDs
+  const { data: memberships } = await sb.from('list_members').select('list_id, role');
+  if (!memberships?.length) return [];
   const listIds = memberships.map(m => m.list_id);
-  const { data: listsData, error: listErr } = await sb.from('lists').select('*').in('id', listIds).order('created_at');
-  console.log('listsData:', listsData, 'err:', listErr);
 
-  const result = [];
-  for (const list of (listsData || [])) {
-    const { data: tabs } = await sb.from('tabs').select('*').eq('list_id', list.id).order('position');
-    const fullTabs = [];
-    for (const tab of (tabs || [])) {
-      const { data: sections } = await sb.from('sections').select('*').eq('tab_id', tab.id).order('position');
-      const fullSections = [];
-      for (const sec of (sections || [])) {
-        const { data: items } = await sb.from('items').select('*').eq('section_id', sec.id).eq('is_deleted', false).order('position');
-        // Load checked state
-        const itemIds = (items || []).map(i => i.id);
-        let checkedSet = new Set();
-        if (itemIds.length) {
-          const { data: checked } = await sb.from('checked_state').select('item_id').in('item_id', itemIds);
-          checkedSet = new Set((checked || []).map(c => c.item_id));
-        }
-        fullSections.push({ ...sec, items: items || [], checkedIds: checkedSet });
-      }
-      fullTabs.push({ ...tab, sections: fullSections });
-    }
-    result.push({ ...list, tabs: fullTabs });
+  // 4 parallel queries instead of nested loops
+  const [
+    { data: listsData },
+    { data: allTabs },
+    { data: allSections },
+    { data: allItems },
+  ] = await Promise.all([
+    sb.from('lists').select('*').in('id', listIds).order('created_at'),
+    sb.from('tabs').select('*').in('list_id', listIds).order('position'),
+    sb.from('sections').select('*').order('position'),
+    sb.from('items').select('*').eq('is_deleted', false).order('position'),
+  ]);
+
+  // Fetch checked state for all items in one query
+  const allItemIds = (allItems || []).map(i => i.id);
+  let checkedSet = new Set();
+  if (allItemIds.length) {
+    const { data: checked } = await sb.from('checked_state').select('item_id').in('item_id', allItemIds);
+    checkedSet = new Set((checked || []).map(c => c.item_id));
   }
-  return result;
+
+  // Build lookup maps
+  const tabsByList = {};
+  const secsByTab  = {};
+  const itemsBySec = {};
+
+  for (const tab of (allTabs || [])) {
+    if (!tabsByList[tab.list_id]) tabsByList[tab.list_id] = [];
+    tabsByList[tab.list_id].push(tab);
+  }
+  for (const sec of (allSections || [])) {
+    if (!secsByTab[sec.tab_id]) secsByTab[sec.tab_id] = [];
+    secsByTab[sec.tab_id].push(sec);
+  }
+  for (const item of (allItems || [])) {
+    if (!itemsBySec[item.section_id]) itemsBySec[item.section_id] = [];
+    itemsBySec[item.section_id].push(item);
+  }
+
+  // Assemble into nested structure
+  return (listsData || []).map(list => ({
+    ...list,
+    tabs: (tabsByList[list.id] || []).map(tab => ({
+      ...tab,
+      sections: (secsByTab[tab.id] || []).map(sec => ({
+        ...sec,
+        items: itemsBySec[sec.id] || [],
+        checkedIds: new Set(
+          (itemsBySec[sec.id] || [])
+            .filter(i => checkedSet.has(i.id))
+            .map(i => i.id)
+        ),
+      })),
+    })),
+  }));
 }
 
 // ─── Progress ─────────────────────────────────────────────────────────────────
