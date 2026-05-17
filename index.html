@@ -300,6 +300,31 @@
     .emoji-opt { font-size: 1.3rem; cursor: pointer; padding: 0.2rem; border-radius: 4px; transition: background 0.1s; }
     .emoji-opt:hover { background: var(--faint); }
 
+
+    /* ── Share modal ── */
+    .member-list { margin-bottom: 1rem; }
+    .member-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.4rem 0; border-bottom: 1px dashed var(--faint); font-size: 0.85rem;
+    }
+    .member-row:last-child { border-bottom: none; }
+    .member-info { display: flex; flex-direction: column; gap: 0.1rem; }
+    .member-email { font-size: 0.78rem; color: var(--muted); }
+    .member-role {
+      font-size: 0.65rem; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--accent2); font-weight: 700;
+    }
+    .member-remove {
+      font-size: 0.8rem; background: none; border: none; color: var(--faint);
+      cursor: pointer; padding: 0; transition: color 0.15s;
+    }
+    .member-remove:hover { color: var(--danger); }
+    .share-divider { border: none; border-top: 1px dashed var(--faint); margin: 0.75rem 0; }
+    .share-error { font-size: 0.75rem; color: var(--danger); margin-top: 0.4rem; min-height: 1rem; }
+    .share-btn { background: none; border: 1.5px solid var(--ink); color: var(--ink); padding: 0.35rem 0.9rem; cursor: pointer; transition: all 0.15s; font-family: 'Courier Prime', monospace; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .share-btn:hover { background: var(--ink); color: var(--bg); }
+    .share-input-row { display: flex; gap: 0.5rem; align-items: flex-start; flex-direction: column; }
+    .share-input-row input { margin-bottom: 0; }
     .loading { text-align: center; padding: 4rem; font-size: 0.85rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
     .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: 0.85rem; }
   </style>
@@ -341,6 +366,7 @@
   <div class="global-actions">
     <button class="global-btn" onclick="App.resetCurrent()">Reset List</button>
     <button class="global-btn" onclick="App.checkCurrent()">Check All</button>
+    <button class="global-btn" onclick="App.openShare()">Share List</button>
   </div>
 </div>
 
@@ -363,6 +389,24 @@
     <div class="modal-actions">
       <button class="modal-btn cancel" onclick="closeModal('newTabModal')">Cancel</button>
       <button class="modal-btn" onclick="App.confirmNewTab()">Create</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Share modal -->
+<div class="modal-bg" id="shareModal">
+  <div class="modal">
+    <h2>Share List</h2>
+    <div class="member-list" id="memberList"></div>
+    <hr class="share-divider" />
+    <div class="share-input-row">
+      <input id="shareEmail" placeholder="Enter email address" type="email" />
+      <p class="share-error" id="shareError"></p>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal('shareModal')">Done</button>
+      <button class="share-btn" onclick="App.confirmShare()">Invite</button>
     </div>
   </div>
 </div>

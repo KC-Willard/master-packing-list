@@ -552,10 +552,19 @@ function subscribeRealtime() {
 const App = {
   async confirmNewList() {
     const name = document.getElementById('newListName').value.trim(); if (!name) return;
-    const { data: listData } = await sb.from('lists').insert({ name, emoji: '📋' }).select().single();
-    if (!listData) return;
-    await sb.from('list_members').insert({ list_id: listData.id, user_id: currentUser.id, role: 'owner' });
-    const newList = { ...listData, tabs: [] };
+
+    // Generate ID client-side so we can insert list + member without needing to read back
+    const id = crypto.randomUUID();
+    const emoji = '📋';
+    const created_at = new Date().toISOString();
+
+    const { error: listErr } = await sb.from('lists').insert({ id, name, emoji, created_at });
+    if (listErr) { console.error('list insert error:', listErr); return; }
+
+    const { error: memErr } = await sb.from('list_members').insert({ list_id: id, user_id: currentUser.id, role: 'owner' });
+    if (memErr) { console.error('member insert error:', memErr); return; }
+
+    const newList = { id, name, emoji, created_at, tabs: [] };
     lists.push(newList);
     buildListView(newList);
     switchList(newList.id);
@@ -593,6 +602,81 @@ const App = {
     updateProgress();
   },
 
+
+  async openShare() {
+    const list = lists.find(l => l.id === activeListId); if (!list) return;
+    document.getElementById('shareError').textContent = '';
+    document.getElementById('shareEmail').value = '';
+
+    // Load current members with emails via profiles view
+    const { data: members } = await sb.from('list_members').select('user_id, role').eq('list_id', list.id);
+    const memberList = document.getElementById('memberList');
+    memberList.innerHTML = '<p style="font-size:0.75rem;color:var(--muted);margin-bottom:0.5rem;letter-spacing:0.06em;text-transform:uppercase;">Current members</p>';
+
+    for (const m of (members || [])) {
+      const { data: userData } = await sb.auth.admin?.getUserById?.(m.user_id) || {};
+      const email = m.user_id === currentUser.id ? currentUser.email : `user ${m.user_id.slice(0,8)}…`;
+      const row = document.createElement('div'); row.className = 'member-row';
+      const info = document.createElement('div'); info.className = 'member-info';
+      const emailEl = document.createElement('span'); emailEl.className = 'member-email'; emailEl.textContent = email;
+      const roleEl = document.createElement('span'); roleEl.className = 'member-role'; roleEl.textContent = m.role;
+      info.append(emailEl, roleEl);
+      row.appendChild(info);
+      if (m.user_id !== currentUser.id) {
+        const removeBtn = document.createElement('button'); removeBtn.className = 'member-remove'; removeBtn.textContent = '× remove';
+        removeBtn.addEventListener('click', async () => {
+          await sb.from('list_members').delete().eq('list_id', list.id).eq('user_id', m.user_id);
+          row.remove();
+        });
+        row.appendChild(removeBtn);
+      }
+      memberList.appendChild(row);
+    }
+
+    openModal('shareModal');
+    setTimeout(() => document.getElementById('shareEmail').focus(), 50);
+  },
+
+  async confirmShare() {
+    const email = document.getElementById('shareEmail').value.trim().toLowerCase();
+    const errEl = document.getElementById('shareError');
+    errEl.textContent = '';
+    if (!email) return;
+
+    const list = lists.find(l => l.id === activeListId); if (!list) return;
+
+    // Look up user by email using a profiles lookup
+    // We use a workaround: try to find existing list_members or use edge function
+    // Since we can't query auth.users directly from client, we store emails in a profiles table
+    // For now: check if user exists via a known workaround - invite by creating a pending record
+    // Actually look them up via our own RPC or just try inserting and catch the error
+    const { data: existingUsers, error: lookupErr } = await sb.rpc('get_user_id_by_email', { email_input: email });
+
+    if (lookupErr || !existingUsers) {
+      errEl.textContent = 'Could not find that user. Make sure they have signed in at least once.';
+      return;
+    }
+
+    const userId = existingUsers;
+    if (!userId) { errEl.textContent = 'No account found for that email.'; return; }
+    if (userId === currentUser.id) { errEl.textContent = "That's you!"; return; }
+
+    const { error } = await sb.from('list_members').insert({ list_id: list.id, user_id: userId, role: 'editor' });
+    if (error) {
+      if (error.code === '23505') errEl.textContent = 'That person already has access.';
+      else errEl.textContent = 'Something went wrong. Try again.';
+      return;
+    }
+
+    document.getElementById('shareEmail').value = '';
+    errEl.textContent = '';
+    errEl.style.color = 'var(--accent2)';
+    errEl.textContent = `Invited ${email}!`;
+    setTimeout(() => { errEl.textContent = ''; errEl.style.color = ''; }, 3000);
+
+    // Refresh member list
+    App.openShare();
+  },
   async checkCurrent() {
     const list = lists.find(l => l.id === activeListId); if (!list) return;
     for (const tab of list.tabs) {
