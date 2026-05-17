@@ -608,14 +608,21 @@ const App = {
     document.getElementById('shareError').textContent = '';
     document.getElementById('shareEmail').value = '';
 
-    // Load current members with emails via profiles view
+    // Load members + resolve emails via RPC (safe, server-side)
     const { data: members } = await sb.from('list_members').select('user_id, role').eq('list_id', list.id);
     const memberList = document.getElementById('memberList');
     memberList.innerHTML = '<p style="font-size:0.75rem;color:var(--muted);margin-bottom:0.5rem;letter-spacing:0.06em;text-transform:uppercase;">Current members</p>';
 
     for (const m of (members || [])) {
-      const { data: userData } = await sb.auth.admin?.getUserById?.(m.user_id) || {};
-      const email = m.user_id === currentUser.id ? currentUser.email : `user ${m.user_id.slice(0,8)}…`;
+      // Resolve email via RPC — avoids admin API
+      let email;
+      if (m.user_id === currentUser.id) {
+        email = currentUser.email;
+      } else {
+        const { data: resolved } = await sb.rpc('get_email_by_user_id', { user_id_input: m.user_id });
+        email = resolved || `${m.user_id.slice(0, 8)}…`;
+      }
+
       const row = document.createElement('div'); row.className = 'member-row';
       const info = document.createElement('div'); info.className = 'member-info';
       const emailEl = document.createElement('span'); emailEl.className = 'member-email'; emailEl.textContent = email;
