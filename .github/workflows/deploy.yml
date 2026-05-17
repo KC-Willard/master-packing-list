@@ -28,7 +28,10 @@ jobs:
       - name: Deploy to Netlify
         run: |
           npm i -g netlify-cli
-          netlify deploy --dir=dist --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID
+          netlify deploy --dir=dist --prod \
+            --auth=$NETLIFY_AUTH_TOKEN \
+            --site=$NETLIFY_SITE_ID \
+            --message="${{ github.event.head_commit.message }}"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
