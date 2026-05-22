@@ -7,11 +7,14 @@ export default function ItemRow({ item, listId, tabId, sectionId }) {
   const { user, toggleItem, removeItem } = useApp();
 
   const {
-    attributes, listeners, setNodeRef,
+    attributes, listeners, setNodeRef, setActivatorNodeRef,
     transform, transition, isDragging,
   } = useSortable({ id: item.id });
 
-  const style = {
+  // Only the row wrapper gets the position ref (for dnd-kit to track position).
+  // attributes + listeners go on the handle only — this keeps touch-action: none
+  // scoped to the handle so the rest of the row doesn't block native scroll.
+  const rowStyle = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
@@ -35,10 +38,17 @@ export default function ItemRow({ item, listId, tabId, sectionId }) {
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={rowStyle}
       className={`item${item.checked ? ' done' : ''}`}
     >
-      <span className="item-handle" {...attributes} {...listeners}>⠿</span>
+      <span
+        ref={setActivatorNodeRef}
+        className="item-handle"
+        {...attributes}
+        {...listeners}
+      >
+        ⠿
+      </span>
       <input type="checkbox" id={id} checked={item.checked} onChange={handleCheck} />
       <label htmlFor={id}>{item.text}</label>
       <button className="del-btn" onClick={handleDelete} title="Remove">×</button>

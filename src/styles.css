@@ -184,7 +184,7 @@ body {
 /* ── Section ── */
 .section-wrap { position: relative; }
 .section-header { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.6rem; }
-.drag-handle { cursor: grab; color: var(--faint); font-size: 0.9rem; line-height: 1; padding: 0 0.2rem; transition: color 0.15s; user-select: none; }
+.drag-handle { cursor: grab; color: var(--faint); font-size: 0.9rem; line-height: 1; padding: 0 0.2rem; transition: color 0.15s; user-select: none; touch-action: none; }
 .drag-handle:hover { color: var(--muted); }
 .section-title-input {
   font-weight: 700; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase;
@@ -197,8 +197,8 @@ body {
 .sec-del-btn:hover { color: var(--danger); }
 
 /* ── Items ── */
-.item { display: flex; align-items: flex-start; gap: 0.45rem; margin-bottom: 0.3rem; line-height: 1.4; touch-action: none; }
-.item-handle { cursor: grab; color: var(--faint); font-size: 0.75rem; margin-top: 3px; flex-shrink: 0; user-select: none; line-height: 1; }
+.item { display: flex; align-items: flex-start; gap: 0.45rem; margin-bottom: 0.3rem; line-height: 1.4; }
+.item-handle { cursor: grab; color: var(--faint); font-size: 0.75rem; margin-top: 3px; flex-shrink: 0; user-select: none; line-height: 1; touch-action: none; }
 .item-handle:hover { color: var(--muted); }
 .item input[type="checkbox"] {
   appearance: none; -webkit-appearance: none;

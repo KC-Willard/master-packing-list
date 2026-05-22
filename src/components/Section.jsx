@@ -18,7 +18,7 @@ export default function Section({ section, listId, tabId }) {
   const [title, setTitle]             = useState(section.title);
 
   const {
-    attributes, listeners, setNodeRef,
+    attributes, listeners, setNodeRef, setActivatorNodeRef,
     transform, transition, isDragging,
   } = useSortable({ id: section.id });
 
@@ -76,7 +76,7 @@ export default function Section({ section, listId, tabId }) {
   return (
     <div ref={setNodeRef} style={style} className="section-wrap">
       <div className="section-header">
-        <span className="drag-handle" {...attributes} {...listeners}>⠿</span>
+        <span ref={setActivatorNodeRef} className="drag-handle" {...attributes} {...listeners}>⠿</span>
         <input
           className="section-title-input"
           value={title}
