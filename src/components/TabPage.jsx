@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import {
-  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
-} from '@dnd-kit/core';
+import { DndContext, closestCenter } from '@dnd-kit/core';
 import {
   SortableContext, rectSortingStrategy, arrayMove,
 } from '@dnd-kit/sortable';
@@ -9,6 +7,7 @@ import { useApp } from '../context/AppContext.jsx';
 import { dbCreateSection, dbDeleteTab, dbUpdateTab, dbReorderSections } from '../lib/db.js';
 import Section from './Section.jsx';
 import EmojiPicker from './EmojiPicker.jsx';
+import { useDndSensors } from '../hooks/useDndSensors.js';
 
 export default function TabPage({ tab, listId }) {
   const { addSection, removeTab, updateTab, reorderSections, setActiveTabIds, activeList } = useApp();
@@ -17,7 +16,7 @@ export default function TabPage({ tab, listId }) {
   const [showEmoji, setShowEmoji]             = useState(false);
   const [emojiAnchor, setEmojiAnchor]         = useState(null);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useDndSensors();
 
   async function handleTabNameBlur() {
     const trimmed = tabName.trim() || tab.name;

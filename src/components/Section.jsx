@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import {
-  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
-} from '@dnd-kit/core';
+import { DndContext, closestCenter } from '@dnd-kit/core';
 import {
   SortableContext, verticalListSortingStrategy, arrayMove,
 } from '@dnd-kit/sortable';
@@ -12,6 +10,7 @@ import {
   dbCreateItem, dbDeleteSection, dbUpdateSection, dbCheckAll, dbUncheckAll, dbReorderItems,
 } from '../lib/db.js';
 import ItemRow from './ItemRow.jsx';
+import { useDndSensors } from '../hooks/useDndSensors.js';
 
 export default function Section({ section, listId, tabId }) {
   const { user, addItem, removeSection, updateSection, reorderItems } = useApp();
@@ -29,7 +28,7 @@ export default function Section({ section, listId, tabId }) {
     opacity: isDragging ? 0.4 : 1,
   };
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useDndSensors();
 
   async function handleTitleBlur() {
     const trimmed = title.trim() || section.title;

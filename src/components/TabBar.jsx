@@ -1,12 +1,11 @@
-import {
-  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
-} from '@dnd-kit/core';
+import { DndContext, closestCenter } from '@dnd-kit/core';
 import {
   SortableContext, horizontalListSortingStrategy, arrayMove, useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useApp } from '../context/AppContext.jsx';
 import { dbCreateTab, dbReorderTabs } from '../lib/db.js';
+import { useDndSensors } from '../hooks/useDndSensors.js';
 
 function SortableTab({ tab, listId, isActive, onClick }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tab.id });
@@ -32,7 +31,7 @@ function SortableTab({ tab, listId, isActive, onClick }) {
 export default function TabBar({ list }) {
   const { activeTabIds, setActiveTabIds, addTab, reorderTabs } = useApp();
   const activeTabId = activeTabIds[list.id];
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useDndSensors();
 
   async function handleAddTab() {
     const name = prompt('Category name:')?.trim();
